@@ -34,3 +34,5 @@ def tokenize(line: str) -> list[str]:
     # Add end-of-line marker
     tokens.append('[END]')
     return tokens
+
+
