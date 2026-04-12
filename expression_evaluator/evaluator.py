@@ -168,4 +168,3 @@ def evaluate(tree: str):
         return "ERROR"  # Invalid operator
 
 
-print(evaluate(parse(tokenize("3 + 4 * (2 - 1)"))))  # Example usage
