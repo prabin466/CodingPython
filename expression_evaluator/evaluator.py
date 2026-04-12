@@ -108,9 +108,35 @@ def factor(tokens: list[str], index: int):
 
 
 
+def split_tree(expr: str):
+    # Splits a expression into its components
+    if expr.startswith('neg:'):
+        return ['neg', expr[4:]]  # Handle unary minus case
 
+    if expr.startswith('(') and expr.endswith(')'):
+        # Remove the outer parentheses
+        inner = expr[1:-1].strip()
+        parts = []
+        current_part = ''
+        depth = 0
 
-
+        # Split the inner expression into parts based on spaces, but only at the top level (not inside nested parentheses)
+        for char in inner:
+            if char == ' ' and depth == 0:
+                if current_part:
+                    parts.append(current_part)
+                    current_part = ''
+            else:
+                if char == '(':
+                    depth += 1
+                elif char == ')':
+                    depth -= 1
+                current_part += char
+        
+        if current_part:
+            parts.append(current_part)
+        
+        return parts
 
 
 
