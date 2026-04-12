@@ -110,8 +110,6 @@ def factor(tokens: list[str], index: int):
 
 def split_tree(expr: str):
     # Splits a expression into its components
-    if expr.startswith('neg:'):
-        return ['neg', expr[4:]]  # Handle unary minus case
 
     if expr.startswith('(') and expr.endswith(')'):
         # Remove the outer parentheses
@@ -139,4 +137,35 @@ def split_tree(expr: str):
         return parts
 
 
+def evaluate(tree: str):
+    # Evaluates the expression tree recursively
+    tree = tree.strip()
+    if tree.isdigit():
+        return int(tree)  # Base case: if it's a number, return its integer value
+    
+    parts = split_tree(tree)  # Split the tree into its components
+    if not parts or len(parts) != 3:
+        return "ERROR"  # If there are no parts or not exactly 3 parts, it's an error
+    if parts[0] == 'neg':
+        return -evaluate(parts[1])  # Handle unary minus
 
+    op = parts[0]  # Get the operator
+    left = parts[1]  # Get the left operand
+    right = parts[2]  # Get the right operand
+
+    if op == '+':
+        return evaluate(left) + evaluate(right)  # Evaluate addition
+    elif op == '-':
+        return evaluate(left) - evaluate(right)  # Evaluate subtraction
+    elif op == '*':
+        return evaluate(left) * evaluate(right)  # Evaluate multiplication
+    elif op == '/':
+        right_value = evaluate(right)
+        if right_value == 0:
+            return "ERROR"  # Handle division by zero
+        return evaluate(left) // right_value  # Evaluate division using integer division
+    else:
+        return "ERROR"  # Invalid operator
+
+
+print(evaluate(parse(tokenize("3 + 4 * (2 - 1)"))))  # Example usage
