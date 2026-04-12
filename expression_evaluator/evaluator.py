@@ -104,7 +104,6 @@ def factor(tokens: list[str], index: int):
         return "ERROR", index  # Invalid token for a factor
 
 
-print(parse(tokenize("3 + 4 * (2 - 1)")))
 
 
 
