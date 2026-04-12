@@ -137,34 +137,54 @@ def split_tree(expr: str):
         return parts
 
 
-def evaluate(tree: str):
+def evaluate(tree):
     # Evaluates the expression tree recursively
-    tree = tree.strip()
-    if tree.isdigit():
-        return int(tree)  # Base case: if it's a number, return its integer value
     
-    parts = split_tree(tree)  # Split the tree into its components
+    # If it's already a number, return it
+    if isinstance(tree, (int, float)):
+        return tree
+    
+    # Convert to string and strip whitespace
+    tree_str = str(tree).strip()
+    
+    # Base case: if it's a plain number as a string
+    if tree_str.isdigit():
+        return int(tree_str)
+    
+    # Handle unary minus
+    if tree_str.startswith('neg:'):
+        operand = tree_str[4:]  # Remove 'neg:' prefix
+        result = evaluate(operand)
+        if result == "ERROR":
+            return "ERROR"
+        return -result
+    
+    # Handle binary operations in format "(op left right)"
+    parts = split_tree(tree_str)
     if not parts or len(parts) != 3:
-        return "ERROR"  # If there are no parts or not exactly 3 parts, it's an error
-    if parts[0] == 'neg':
-        return -evaluate(parts[1])  # Handle unary minus
-
+        return "ERROR"
+    
     op = parts[0]  # Get the operator
     left = parts[1]  # Get the left operand
     right = parts[2]  # Get the right operand
+    
+    left_val = evaluate(left)
+    right_val = evaluate(right)
+    
+    if left_val == "ERROR" or right_val == "ERROR":
+        return "ERROR"
 
     if op == '+':
-        return evaluate(left) + evaluate(right)  # Evaluate addition
+        return left_val + right_val
     elif op == '-':
-        return evaluate(left) - evaluate(right)  # Evaluate subtraction
+        return left_val - right_val
     elif op == '*':
-        return evaluate(left) * evaluate(right)  # Evaluate multiplication
+        return left_val * right_val
     elif op == '/':
-        right_value = evaluate(right)
-        if right_value == 0:
+        if right_val == 0:
             return "ERROR"  # Handle division by zero
-        return evaluate(left) // right_value  # Evaluate division using integer division
+        return left_val / right_val
     else:
-        return "ERROR"  # Invalid operator
+        return "ERROR"
 
 
