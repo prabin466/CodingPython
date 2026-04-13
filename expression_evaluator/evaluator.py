@@ -1,3 +1,44 @@
+def evaluate_file(input_path:str) ->list[dict]:  # Evaluates the expressions in the input file and returns a list of results
+    results = []    # List to store the results of each expression
+    with open(input_path, 'r') as file:  # Open the input file for reading
+        for line in file:  # Iterate through each line in the file
+            line = line.strip()  # Remove leading and trailing whitespace
+            if not line:  # Skip empty lines
+                continue
+            
+            tokens = tokenize(line)  # Tokenize the line into a list of tokens
+            if '[ERROR]' in tokens:  # Check if tokenization resulted in an error
+                results.append({"input": line, "tree": "ERROR", "tokens": ["ERROR"], "result": "ERROR"})
+                continue
+            
+            parsed_expr = parse(tokens)  # Parse the list of tokens to create an expression tree
+            if parsed_expr == "ERROR":  # Check if parsing resulted in an error
+                results.append({"input": line, "tree": "ERROR", "tokens": tokens, "result": "ERROR"})
+                continue
+
+            evaluation_result = evaluate(parsed_expr)  # Evaluate the expression tree to get the final result
+            if evaluation_result == "ERROR":  # Check if evaluation resulted in an error
+                results.append({"input": line, "tree": parsed_expr, "tokens": tokens, "result": "ERROR"})
+            else:
+                if isinstance(evaluation_result, (int,float)) : # Check if the evaluation result is a number (int or float)
+                    if evaluation_result == int(evaluation_result):  # Convert the result to an integer if it's a float
+                        evaluation_result = int(evaluation_result)
+                    else:
+                        evaluation_result = round(evaluation_result, 4)  # Round the result to 4 decimal places if it's a float
+                else:
+                    evaluation_result = "ERROR"  # If the result is not a number, set it to "ERROR"
+                
+                results.append({"input": line, "tree": parsed_expr, "tokens": tokens, "result": evaluation_result})  # Append the result to the results list
+
+    with open('output.txt', 'w') as output_file:  # Open the output file for writing
+        for result in results:  # Iterate through each result in the results list
+            output_file.write(f"Input: {result['input']}\n")  # Write the input expression to the output file
+            output_file.write(f"Tree: {result['tree']}\n")  # Write the expression tree to the output file
+            output_file.write(f"Tokens: {' '.join(result['tokens'])}\n")  # Write the tokens to the output file
+            output_file.write(f"Result: {result['result']}\n\n")  # Write the final result to the output file
+    
+    return results  # Return the list of results
+
 def tokenize(line: str) -> list[str]:
     # Tokenizes a line of text into a list of tokens
     tokens = []
@@ -98,7 +139,7 @@ def factor(tokens: list[str], index: int):
     elif tokens[index] == '[OP:-]':  # Unary minus
         index += 1  # Consume '-'
         result, index = factor(tokens, index)  # Parse the factor after unary minus
-        return f"neg:{result}", index
+        return f"(neg {result})", index
     
     else:
         return "ERROR", index  # Invalid token for a factor
@@ -188,3 +229,4 @@ def evaluate(tree):
         return "ERROR"
 
 
+evaluate_file('sample_input.txt')  # Call the evaluate_file function with the path to the input file
