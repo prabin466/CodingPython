@@ -16,22 +16,20 @@ def decrypt_text(text, shift1, shift2):
     for c in text:
         # LOWERCASE
         if c.islower():
-            # Reverse rule for a-m
-            candidate = shift_char(c, -(shift1 * shift2))
-            if 'a' <= candidate <= 'm':
-                result += candidate
-            else:
-                # Reverse rule for n-z
+            if 'a' <= c <= 'm':
+                # This was encrypted with shift1 * shift2 forward, so decrypt backward
+                result += shift_char(c, -(shift1 * shift2))
+            else:  # n-z
+                # This was encrypted with (shift1 + shift2) backward, so decrypt forward
                 result += shift_char(c, (shift1 + shift2))
 
         # UPPERCASE
         elif c.isupper():
-            # Reverse rule for A-M
-            candidate = shift_char(c, shift1)
-            if 'A' <= candidate <= 'M':
-                result += candidate
-            else:
-                # Reverse rule for N-Z
+            if 'A' <= c <= 'M':
+                # This was encrypted with shift1 backward, so decrypt forward
+                result += shift_char(c, shift1)
+            else:  # N-Z
+                # This was encrypted with shift2^2 forward, so decrypt backward
                 result += shift_char(c, -(shift2 ** 2))
 
         # OTHER CHARACTERS (unchanged)
@@ -57,9 +55,6 @@ def decrypt_file(input_file, output_file, shift1, shift2):
         print("Encrypted file not found.")
     except Exception as e:
         print("Error:", e)
-
-
-
 
 
 # MAIN
