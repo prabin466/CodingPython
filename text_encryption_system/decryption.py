@@ -1,4 +1,4 @@
-# Helper function for shifting with wrap-around
+# Helper function (unchanged)
 def shift_char(c, shift):
     if c.islower():
         base = ord('a')
@@ -6,37 +6,24 @@ def shift_char(c, shift):
     elif c.isupper():
         base = ord('A')
         return chr((ord(c) - base + shift) % 26 + base)
-    else:
-        return c
+    return c
+
+
+ 
+def decrypt_char(c, shift1, shift2):
+    if c.islower():
+        shift = shift1 * shift2
+        return shift_char(c, -shift)
+
+    elif c.isupper():
+        shift = shift2 ** 2
+        return shift_char(c, -shift)
+
+    return c
 
 
 def decrypt_text(text, shift1, shift2):
-    result = ""
-
-    for c in text:
-        # LOWERCASE
-        if c.islower():
-            if 'a' <= c <= 'm':
-                # This was encrypted with shift1 * shift2 forward, so decrypt backward
-                result += shift_char(c, -(shift1 * shift2))
-            else:  # n-z
-                # This was encrypted with (shift1 + shift2) backward, so decrypt forward
-                result += shift_char(c, (shift1 + shift2))
-
-        # UPPERCASE
-        elif c.isupper():
-            if 'A' <= c <= 'M':
-                # This was encrypted with shift1 backward, so decrypt forward
-                result += shift_char(c, shift1)
-            else:  # N-Z
-                # This was encrypted with shift2^2 forward, so decrypt backward
-                result += shift_char(c, -(shift2 ** 2))
-
-        # OTHER CHARACTERS (unchanged)
-        else:
-            result += c
-
-    return result
+    return "".join(decrypt_char(c, shift1, shift2) for c in text)
 
 
 def decrypt_file(input_file, output_file, shift1, shift2):
@@ -57,17 +44,13 @@ def decrypt_file(input_file, output_file, shift1, shift2):
         print("Error:", e)
 
 
-# MAIN
 if __name__ == "__main__":
     encrypted_file = "encrypted_text.txt"
     decrypted_file = "decrypted_text.txt"
-    original_file = "raw_text.txt"
 
     try:
         shift1 = int(input("Enter shift1: "))
         shift2 = int(input("Enter shift2: "))
-
         decrypt_file(encrypted_file, decrypted_file, shift1, shift2)
-
     except ValueError:
         print("Please enter valid integers.")

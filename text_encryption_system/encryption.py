@@ -1,6 +1,6 @@
 import string
 
-# Helper function to shift characters with wrap-around
+# Helper function (unchanged)
 def shift_char(c, shift):
     if c.islower():
         base = ord('a')
@@ -12,33 +12,21 @@ def shift_char(c, shift):
         return c
 
 
+# NEW: Clean, invertible encryption
+def encrypt_char(c, shift1, shift2):
+    if c.islower():
+        shift = shift1 * shift2                     # same rule for ALL lowercase
+        return shift_char(c, shift)
+
+    elif c.isupper():
+        shift = shift2 ** 2                         # same rule for ALL uppercase
+        return shift_char(c, shift)
+
+    return c
+
+
 def encrypt_text(text, shift1, shift2):
-    encrypted = ""
-
-    for c in text:
-        # LOWERCASE
-        if c.islower():
-            if 'a' <= c <= 'm':
-                shift = shift1 * shift2
-                encrypted += shift_char(c, shift)
-            else:  # n-z
-                shift = -(shift1 + shift2)
-                encrypted += shift_char(c, shift)
-
-        # UPPERCASE
-        elif c.isupper():
-            if 'A' <= c <= 'M':
-                shift = -shift1
-                encrypted += shift_char(c, shift)
-            else:  # N-Z
-                shift = shift2 ** 2
-                encrypted += shift_char(c, shift)
-
-        # OTHER CHARACTERS
-        else:
-            encrypted += c
-
-    return encrypted
+    return "".join(encrypt_char(c, shift1, shift2) for c in text)
 
 
 def encrypt_file(input_file, output_file, shift1, shift2):
@@ -59,7 +47,6 @@ def encrypt_file(input_file, output_file, shift1, shift2):
         print("Error:", e)
 
 
-# MAIN EXECUTION
 if __name__ == "__main__":
     input_file = "raw_text.txt"
     output_file = "encrypted_text.txt"
@@ -67,8 +54,6 @@ if __name__ == "__main__":
     try:
         shift1 = int(input("Enter shift1: "))
         shift2 = int(input("Enter shift2: "))
-
         encrypt_file(input_file, output_file, shift1, shift2)
-
     except ValueError:
-        print(" Please enter valid integer values for shifts.")
+        print("Please enter valid integer values for shifts.")
