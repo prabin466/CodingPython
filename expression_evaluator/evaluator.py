@@ -59,7 +59,8 @@ def tokenize(line: str) -> list[str]:
     current_number = ''
 
     for char in line:
-        if char.isdigit():
+        # Allow digits and a single decimal point 
+        if char.isdigit() or (char == '.' and '.' not in current_number):     
             current_number += char
         else:
             if current_number:
@@ -124,14 +125,19 @@ def term(tokens: list[str], index: int):
     left, index = factor(tokens, index)  
 
     while index < len(tokens) and tokens[index] in ('[OP:*]', '[OP:/]'):
-        op = tokens[index]  
-        index += 1  
-        right, index = factor(tokens, index) 
-        
-        if op == '[OP:*]':
-            left = f"(* {left} {right})" 
+        if tokens[index] in ('[OP:*]', '[OP:/]'):
+            op = tokens[index]  
+            index += 1  
+            right, index = factor(tokens, index)  
+            
+            if op == '[OP:*]':
+                left = f"(* {left} {right})"  
+            elif op == '[OP:/]':
+                left = f"(/ {left} {right})"
         else:
-            left = f"(/ {left} {right})" 
+            #Implicit multiplication e.g. 2(3+4) or (1+2)(3+4)
+            right, index = factor(tokens, index)
+            left = f"(* {left} {right})"
     return left, index
 
 
@@ -141,9 +147,17 @@ def factor(tokens: list[str], index: int):
     Parses a factor, which can be a number, a parenthesized expression, or a unary minus.
     Returns the parsed factor and the next index to process.
     """
+    # Guard against index out of bounds
+    if index >= len(tokens):
+        return "ERROR", index 
+        
     if tokens[index].startswith('[NUM:'):
         # Extract the integer value from the token
-        number = int(tokens[index][5:-1])
+        raw = tokens[index][5:-1]
+        if '.' in raw:
+            number = float(raw)
+        else:
+            number = int(raw)
         index += 1
         return number, index
 
