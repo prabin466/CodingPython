@@ -1,60 +1,71 @@
-def evaluate_file(input_path:str) ->list[dict]:  # Evaluates the expressions in the input file and returns a list of results
-    results = []    # List to store the results of each expression
-    with open(input_path, 'r') as file:  # Open the input file for reading
-        for line in file:  # Iterate through each line in the file
-            line = line.strip()  # Remove leading and trailing whitespace
-            if not line:  # Skip empty lines
+def evaluate_file(input_path:str) ->list[dict]:
+    """
+    Reads mathematical expressions from a file, evaluates each one,
+    writes the results to an output file and results a list of results dicts.
+    Each dict contains the original input, the parsed tree, the tokens, and the evaluation result."""
+    results = []    
+    with open(input_path, 'r') as file:  
+        for line in file: 
+            line = line.strip()  
+            if not line:  
                 continue
             
-            tokens = tokenize(line)  # Tokenize the line into a list of tokens
-            if '[ERROR]' in tokens:  # Check if tokenization resulted in an error
+            tokens = tokenize(line) 
+            if '[ERROR]' in tokens:
+                # If tokenization fails, we record the error and skip to the next line  
                 results.append({"input": line, "tree": "ERROR", "tokens": ["ERROR"], "result": "ERROR"})
                 continue
             
-            parsed_expr = parse(tokens)  # Parse the list of tokens to create an expression tree
-            if parsed_expr == "ERROR":  # Check if parsing resulted in an error
+            parsed_expr = parse(tokens)  
+            if parsed_expr == "ERROR":  
                 results.append({"input": line, "tree": "ERROR", "tokens": tokens, "result": "ERROR"})
                 continue
 
-            evaluation_result = evaluate(parsed_expr)  # Evaluate the expression tree to get the final result
-            if evaluation_result == "ERROR":  # Check if evaluation resulted in an error
+            evaluation_result = evaluate(parsed_expr)  
+            if evaluation_result == "ERROR":  
                 results.append({"input": line, "tree": parsed_expr, "tokens": tokens, "result": "ERROR"})
             else:
-                if isinstance(evaluation_result, (int,float)) : # Check if the evaluation result is a number (int or float)
-                    if evaluation_result == int(evaluation_result):  # Convert the result to an integer if it's a float
+                # Normalize the result: if it's a float that is actually an integer, convert it to int; otherwise round to 4 decimal places
+                if isinstance(evaluation_result, (int,float)) : 
+                    if evaluation_result == int(evaluation_result):  
                         evaluation_result = int(evaluation_result)
                     else:
-                        evaluation_result = round(evaluation_result, 4)  # Round the result to 4 decimal places if it's a float
-                else:
-                    evaluation_result = "ERROR"  # If the result is not a number, set it to "ERROR"
-                
-                results.append({"input": line, "tree": parsed_expr, "tokens": tokens, "result": evaluation_result})  # Append the result to the results list
+                        evaluation_result = round(evaluation_result, 4)  
+                results.append({"input": line, "tree": parsed_expr, "tokens": tokens, "result": evaluation_result})  
 
-    with open('output.txt', 'w') as output_file:  # Open the output file for writing
-        for result in results:  # Iterate through each result in the results list
-            output_file.write(f"Input: {result['input']}\n")  # Write the input expression to the output file
-            output_file.write(f"Tree: {result['tree']}\n")  # Write the expression tree to the output file
-            output_file.write(f"Tokens: {' '.join(result['tokens'])}\n")  # Write the tokens to the output file
-            output_file.write(f"Result: {result['result']}\n\n")  # Write the final result to the output file
+    with open('output.txt', 'w') as output_file: 
+        for result in results:  
+            output_file.write(f"Input: {result['input']}\n")  
+            output_file.write(f"Tree: {result['tree']}\n")  
+            output_file.write(f"Tokens: {' '.join(result['tokens'])}\n")  
+            output_file.write(f"Result: {result['result']}\n\n")  
     
-    return results  # Return the list of results
+    return results
+
 
 def tokenize(line: str) -> list[str]:
-    # Tokenizes a line of text into a list of tokens
+    """Converts a string expression into a list of tokens.
+    Tokens include numbers, operators, parentheses, and an end token.
+    
+    Token types:
+    - [NUM:<number>]: A number token
+    - [OP:<operator>]: An operator token
+    - [LPAREN]: A left parenthesis token
+    - [RPAREN]: A right parenthesis token
+    - [END]: An end token
+    """
+   
     tokens = []
     current_number = ''
 
     for char in line:
-        # Accumulate digits into current_number
         if char.isdigit():
             current_number += char
         else:
-            # Flush current_number if it exists and is not empty
             if current_number:
                 tokens.append(f'[NUM:{current_number}]')
                 current_number = ''
             
-            # Tokenize special characters and operators
             if char == '(':
                 tokens.append('[LPAREN]')
             elif char == ')':
@@ -62,87 +73,98 @@ def tokenize(line: str) -> list[str]:
             elif char in '+-/*':
                 tokens.append(f'[OP:{char}]')
             elif char == ' ':
-                # Skip whitespace
                 pass
             else:
-                # Invalid character encountered - return ERROR
                 return ['[ERROR]']
     
-    # Flush any remaining number at the end of line
+
     if current_number:
         tokens.append(f'[NUM:{current_number}]')
-    
-    # Add end-of-line marker
+
     tokens.append('[END]')
     return tokens
 
 
-# Parses the list of tokens and evaluates the expression
+
 def parse(tokens: list[str]):
-    result,index = expression(tokens,0)  # Start parsing from the first token
+    """
+    Parses a list of tokens into an expression tree. Returns the tree or "ERROR" if parsing fails.
+    """
+    result,index = expression(tokens,0) 
 
-    if index != len(tokens) - 1:  # Check if we have consumed all tokens except the end marker
-        return "ERROR"  # If not, there are extra tokens that were not parsed
-    return result  # Return the final result of the expression
+    if index != len(tokens) - 1: 
+        return "ERROR"  
+    return result
 
 
-def expression(tokens: list[str], index: int):  # Handles addition and subtraction
-    left, index = term(tokens, index)  # Parse the first term
+def expression(tokens: list[str], index: int):
+    """
+    Parses addition and subtraction operations, respecting operator precedence.
+    Delegates higher-precedence operations to the `term` function.
+    """
+    left, index = term(tokens, index) 
 
-    # Checks for addition or subtraction operators
     while index < len(tokens) and tokens[index] in ('[OP:+]', '[OP:-]'):
-        op = tokens[index]  # Get the operator
-        index += 1  # Consume the operator
-        right, index = term(tokens, index)  # Parse the next term
+        op = tokens[index]  
+        index += 1  
+        right, index = term(tokens, index)  
         
         if op == '[OP:+]':
-            left = f"(+ {left} {right})"  # Create an addition node
-        else:
-            left = f"(- {left} {right})"  # Create a subtraction node
+            left = f"(+ {left} {right})" 
+        elif op == '[OP:-]':
+            left = f"(- {left} {right})"  
     return left, index
 
 
-def term(tokens: list[str], index: int):  # Handles multiplication and division
-    left, index = factor(tokens, index)  # Parse the first factor
+def term(tokens: list[str], index: int):
+    """
+    Parses multiplication and division operations, respecting operator precedence.
+    Returns the parsed expression and the next index to process.
+    """
+    left, index = factor(tokens, index)  
 
-    # Checks for multiplication or division operators
     while index < len(tokens) and tokens[index] in ('[OP:*]', '[OP:/]'):
-        op = tokens[index]  # Get the operator
-        index += 1  # Consume the operator
-        right, index = factor(tokens, index)  # Parse the next factor
+        op = tokens[index]  
+        index += 1  
+        right, index = factor(tokens, index) 
         
         if op == '[OP:*]':
-            left = f"(* {left} {right})"  # Create a multiplication node
+            left = f"(* {left} {right})" 
         else:
-            left = f"(/ {left} {right})"  # Create a division node
+            left = f"(/ {left} {right})" 
     return left, index
 
 
-# Parses a factor, which can be a number, a parenthesized expression or unary operator
+
 def factor(tokens: list[str], index: int):
+    """
+    Parses a factor, which can be a number, a parenthesized expression, or a unary minus.
+    Returns the parsed factor and the next index to process.
+    """
     if tokens[index].startswith('[NUM:'):
-        # Extract the number from the token
-        number = int(tokens[index][5:-1])  # Remove '[NUM:' and ']'
+        # Extract the integer value from the token
+        number = int(tokens[index][5:-1])
         index += 1
         return number, index
 
     elif tokens[index] == '[LPAREN]':
-        index += 1  # Consume  '('
-        result, index = expression(tokens, index)  # Parse the expression inside parentheses
+        index += 1 # Move past the left parenthesis
+        result, index = expression(tokens, index) 
 
         if index >= len(tokens) or tokens[index] != '[RPAREN]':
             return "ERROR", index  # Missing closing parenthesis
 
-        index += 1  # Consume ')'
+        index += 1   # Move past the right parenthesis
         return result, index
 
-    elif tokens[index] == '[OP:-]':  # Unary minus
-        index += 1  # Consume '-'
-        result, index = factor(tokens, index)  # Parse the factor after unary minus
+    elif tokens[index] == '[OP:-]': 
+        # Handle unary minus
+        index += 1  
+        result, index = factor(tokens, index) 
         return f"(neg {result})", index
     
     else:
-        return "ERROR", index  # Invalid token for a factor
+        return "ERROR", index  # unexpected token
 
 
 
@@ -150,7 +172,10 @@ def factor(tokens: list[str], index: int):
 
 
 def split_tree(expr: str):
-    # Splits a expression into its components
+    """
+    Splits a parenthesized expression into its components.
+    For example, "(+ 1 2)" would be split into ["+", "1", "2"].
+    """
 
     if expr.startswith('(') and expr.endswith(')'):
         # Remove the outer parentheses
@@ -179,35 +204,40 @@ def split_tree(expr: str):
 
 
 def evaluate(tree):
-    # Evaluates the expression tree recursively
-    
-    # If it's already a number, return it
+    """
+    Recursively evaluates an expression tree. The tree can be a number, a unary operation, 
+    or a binary operation. Returns the evaluated result or "ERROR" if evaluation fails (e.g., division by zero).
+    """
     if isinstance(tree, (int, float)):
         return tree
     
-    # Convert to string and strip whitespace
     tree_str = str(tree).strip()
-    
-    # Base case: if it's a plain number as a string
-    if tree_str.isdigit():
+
+    # Handle bare number strings returned by split_tree
+    try:
         return int(tree_str)
+    except ValueError:
+        try:
+            return float(tree_str)
+        except ValueError:
+            pass
     
-    # Handle unary minus
-    if tree_str.startswith('neg:'):
-        operand = tree_str[4:]  # Remove 'neg:' prefix
-        result = evaluate(operand)
-        if result == "ERROR":
-            return "ERROR"
-        return -result
-    
-    # Handle binary operations in format "(op left right)"
     parts = split_tree(tree_str)
-    if not parts or len(parts) != 3:
+
+    if not parts:
         return "ERROR"
     
-    op = parts[0]  # Get the operator
-    left = parts[1]  # Get the left operand
-    right = parts[2]  # Get the right operand
+    if parts[0] == 'neg':
+        # Handle unary minus
+        val = evaluate(parts[1])
+        if val == "ERROR":
+            return "ERROR"
+        return -val
+    
+    if len(parts) != 3:
+        return "ERROR"
+    
+    op, left, right = parts[0], parts[1], parts[2]
     
     left_val = evaluate(left)
     right_val = evaluate(right)
@@ -223,10 +253,10 @@ def evaluate(tree):
         return left_val * right_val
     elif op == '/':
         if right_val == 0:
-            return "ERROR"  # Handle division by zero
+            return "ERROR"  # Division by zero error
         return left_val / right_val
     else:
-        return "ERROR"
+        return "ERROR" # Unknown operator error
 
 
-evaluate_file('sample_input.txt')  # Call the evaluate_file function with the path to the input file
+evaluate_file('sample_input.txt')  
